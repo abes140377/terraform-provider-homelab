@@ -1,0 +1,18 @@
+provider_installation {
+  dev_overrides {
+    "registry.terraform.io/abes140377/homelab" = "/Users/seba/.local/share/mise/installs/go/1.24.2/bin"
+  }
+
+  direct {}
+}
+
+# provider_installation {
+#   filesystem_mirror {
+#     path    = "/Users/seba/.local/share/opentofu/plugins"
+#     include = ["registry.terraform.io/abes140377/*"]
+#   }
+# 
+#   direct {
+#     exclude = ["registry.terraform.io/abes140377/*"]
+#   }
+# }

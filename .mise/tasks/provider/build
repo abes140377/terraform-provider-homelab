@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 
-#MiSE description "Build and verify the Terraform HomeLab provider"
+#MiSE description "Build and verify the tofu homeLab provider"
 
 set -euo pipefail
 
 echo ""
-echo "📦 Installing Terraform HomeLab provider..."
+echo "📦 Installing tofu homeLab provider..."
 
 echo ""
 echo "- Formatting Go code..."
