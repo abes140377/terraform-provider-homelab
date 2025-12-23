@@ -7,6 +7,12 @@ opentofu = "1.9.0"
 [env]
 PROJECT_NAME = "{{ config_root | basename }}"
 
+_.file = [
+  { path = "{{env.HOME}}/.env", optional = true },
+  { path = ".env", optional = true },
+  { path = ".creds.env.yaml", redact = true }
+]
+
 [hooks]
 enter = [
   'echo ""',
