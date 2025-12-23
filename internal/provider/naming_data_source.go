@@ -72,6 +72,16 @@ func (d *namingDataSource) Read(ctx context.Context, req datasource.ReadRequest,
 		return
 	}
 
+	// If env is "prod", do not concatenate — use the app name as-is and return early.
+	if data.Env.ValueString() == "prod" {
+		data.Name = types.StringValue(data.App.ValueString())
+		resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
+		if resp.Diagnostics.HasError() {
+			return
+		}
+		return
+	}
+
 	// Generate the name by concatenating app and env with a hyphen
 	name := fmt.Sprintf("%s-%s", data.App.ValueString(), data.Env.ValueString())
 	data.Name = types.StringValue(name)

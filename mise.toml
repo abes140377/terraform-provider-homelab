@@ -1,6 +1,7 @@
 [tools]
 go = "1.24.2"
 golangci-lint = "v2.7.2"
+goreleaser = "2.13.1"
 opentofu = "1.9.0"
 
 [env]
