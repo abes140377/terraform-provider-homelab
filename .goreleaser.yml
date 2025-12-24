@@ -1,39 +1,87 @@
-# This is a basic .goreleaser.yml configuration for future release automation.
-# It is not used during local development but provides a foundation for
-# publishing the provider to the Terraform Registry in the future.
+# GoReleaser configuration for Terraform Provider releases
+# This configuration is specifically designed for Terraform/OpenTofu providers
+# and follows Terraform Registry requirements for artifact naming and structure.
+#
+# Testing locally:
+#   goreleaser release --snapshot --clean --skip=publish
+#
+# This will create a local build in the dist/ directory without publishing.
 
 version: 2
 
 before:
   hooks:
+    # Ensure dependencies are clean and up to date
     - go mod tidy
+    # Optionally run tests before release (uncomment when tests exist)
+    # - go test ./...
 
 builds:
-  - env:
+  - # Binary name must be terraform-provider-<name> for Terraform to recognize it
+    binary: terraform-provider-homelab
+
+    env:
+      # Disable CGO for static binaries (required for cross-compilation)
       - CGO_ENABLED=0
+
+    # Use commit timestamp for reproducible builds
     mod_timestamp: '{{ .CommitTimestamp }}'
+
     flags:
+      # Strip file path information from binaries for smaller size and reproducibility
       - -trimpath
+
     ldflags:
+      # -s -w: Strip debug information for smaller binaries
+      # -X main.version: Inject version into the binary (main.version variable)
       - '-s -w -X main.version={{.Version}}'
+
     goos:
-      # - linux
+      # Build for all standard Terraform-supported operating systems
+      - linux
       - darwin
       # - windows
+
     goarch:
-      # - amd64
+      # Build for all standard Terraform-supported architectures
+      - amd64
       - arm64
-    binary: '{{ .ProjectName }}_v{{ .Version }}'
+
+    # Exclude combinations that don't make sense or aren't commonly used
+    # ignore:
+    #   # Windows ARM64 is not commonly used for Terraform providers
+    #   - goos: windows
+    #     goarch: arm64
 
 archives:
-  - name_template: '{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}'
+  - # Archive format MUST be zip for Terraform Registry compatibility
+    # Terraform CLI expects zip files and will fail with tar.gz
+    formats: [ 'zip' ]
+
+    # Naming pattern follows Terraform Registry requirements:
+    # terraform-provider-<name>_<version>_<os>_<arch>.zip
+    name_template: '{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}'
+
+    # Only include the provider binary, no extra files
+    # Terraform only needs the binary itself
     files:
       - none*
 
 checksum:
+  # Terraform requires SHA256SUMS file for integrity verification
+  # This file contains checksums for all built archives
   name_template: '{{ .ProjectName }}_{{ .Version }}_SHA256SUMS'
   algorithm: sha256
 
+# GPG signing configuration (OPTIONAL but recommended for Terraform Registry)
+# To enable signing:
+# 1. Generate a GPG key: gpg --full-generate-key
+# 2. Export public key: gpg --armor --export your-email@example.com
+# 3. Add public key to Terraform Registry (in your account settings)
+# 4. Set GPG_FINGERPRINT environment variable in GitHub Actions secrets
+# 5. Import GPG private key in GitHub Actions (use encrypted secrets)
+# 6. Uncomment the signs section below
+#
 # signs:
 #   - artifacts: checksum
 #     args:
@@ -45,5 +93,86 @@ checksum:
 #       - "--detach-sign"
 #       - "${artifact}"
 
-# changelog:
-#   skip: true
+release:
+  # Create GitHub release with generated artifacts
+  github:
+    owner: abes140377
+    name: terraform-provider-homelab
+
+  # Generate release notes from git history
+  # This will include commit messages since the last tag
+  # You can customize this with a custom release notes template
+
+  # Mark releases as draft initially if you want to review before publishing
+  draft: false
+
+  # Set to true for pre-release versions (e.g., v0.1.0-beta)
+  prerelease: auto
+
+  # Release name format
+  name_template: "v{{ .Version }}"
+
+  # Additional release notes footer
+  footer: |
+    ## Installation
+
+    ### Using this provider
+
+    To use this provider in your Terraform/OpenTofu configuration:
+
+    ```hcl
+    terraform {
+      required_providers {
+        homelab = {
+          source  = "abes140377/homelab"
+          version = "~> {{ .Version }}"
+        }
+      }
+    }
+    ```
+
+    ### Manual installation
+
+    Download the appropriate archive for your platform from the assets below and extract it to your Terraform plugins directory.
+
+    **Full Changelog**: https://github.com/abes140377/terraform-provider-homelab/compare/{{ .PreviousTag }}...{{ .Tag }}
+
+changelog:
+  # Use commits since last tag for changelog generation
+  use: github
+
+  # Sort commits by type (feat, fix, etc.)
+  sort: asc
+
+  # Group commits by type in the changelog
+  groups:
+    - title: Features
+      regexp: '^.*?feat(\([[:word:]]+\))??!?:.+$'
+      order: 0
+    - title: 'Bug Fixes'
+      regexp: '^.*?fix(\([[:word:]]+\))??!?:.+$'
+      order: 1
+    - title: 'Documentation'
+      regexp: '^.*?docs(\([[:word:]]+\))??!?:.+$'
+      order: 2
+    - title: Others
+      order: 999
+
+  filters:
+    # Exclude commits that are just merge commits or don't follow conventional commits
+    exclude:
+      - '^docs:'
+      - '^test:'
+      - '^chore:'
+      - 'merge conflict'
+      - Merge pull request
+      - Merge remote-tracking branch
+      - Merge branch
+
+# Terraform Registry metadata (optional, for future registry publishing)
+# When ready to publish to Terraform Registry:
+# 1. Create account on registry.terraform.io
+# 2. Link your GitHub repository
+# 3. Enable GPG signing (see signs section above)
+# 4. Push a tag and let this workflow create the release
+# 5. Terraform Registry will automatically detect and publish the release
