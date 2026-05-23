@@ -86,10 +86,11 @@ TF_CLI_CONFIG_FILE=.tofurc tofu plan
 This project uses [mise](https://mise.jdx.dev/) for managing tools and task automation:
 
 **Required Tools (managed by mise):**
-- Go 1.24.2
+- Go 1.26.3
 - golangci-lint v2.7.2
 - goreleaser 2.13.1
 - opentofu 1.9.0
+- pre-commit latest
 
 **Setup:**
 ```bash
@@ -127,6 +128,7 @@ The mise configuration (`mise.toml`) automatically:
 ├── .goreleaser.yml                      # GoReleaser configuration for builds and releases
 │                                        # - Snapshot mode for local dev (--snapshot --single-target)
 │                                        # - Generates version strings like: 0.3.0-next+20250128.abc123
+│                                        # - GPG signing of checksum file is ACTIVE (signs block enabled)
 │
 ├── mise.toml                            # Mise configuration
 │                                        # - Tool versions (Go, GoReleaser, OpenTofu, golangci-lint)
@@ -230,7 +232,7 @@ The provider supports two installation approaches for local development:
 This is the recommended approach during active development:
 
 1. **Install**: `mise run provider:install` builds with GoReleaser and installs to GOBIN
-   - GOBIN location: `~/.local/share/mise/installs/go/1.24.2/bin` (when using mise)
+   - GOBIN location: `~/.local/share/mise/installs/go/1.26.3/bin` (when using mise)
    - Binary name: `terraform-provider-homelab`
    - Version format: `0.3.0-next+20250128.abc123` (snapshot builds include timestamp and git hash)
 
@@ -238,7 +240,7 @@ This is the recommended approach during active development:
    ```hcl
    provider_installation {
      dev_overrides {
-       "registry.terraform.io/sflab-io/homelab" = "/Users/seba/.local/share/mise/installs/go/1.24.2/bin"
+       "registry.terraform.io/sflab-io/homelab" = "/Users/seba/.local/share/mise/installs/go/1.26.3/bin"
      }
      direct {}
    }
@@ -279,4 +281,4 @@ This approach mimics a registry installation and requires:
 - No managed resources (data sources only)
 - No provider functions
 - Simple naming logic with special prod/production handling; no advanced validation or transformations
-- Not yet published to OpenTofu Registry (CI/GPG setup via `github:setup-ci` prepares for registry submission)
+- Not yet published to OpenTofu Registry; GPG signing in `.goreleaser.yml` is active — run `mise run github:setup-ci` to set required GitHub secrets, then push a tag to trigger a release
